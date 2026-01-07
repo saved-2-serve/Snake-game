@@ -42,20 +42,32 @@ def init_colors():
     curses.start_color()
     curses.use_default_colors()
     curses.init_pair(1, curses.COLOR_CYAN, -1)
-    curses.init_pair(2, curses.COLOR_GREEN, -1)
-    curses.init_pair(3, curses.COLOR_YELLOW, -1)
+    curses.init_pair(2, curses.COLOR_WHITE, -1)
+    curses.init_pair(3, curses.COLOR_MAGENTA, -1)
     curses.init_pair(4, curses.COLOR_RED, -1)
-    curses.init_pair(5, curses.COLOR_WHITE, -1)
+    curses.init_pair(5, curses.COLOR_YELLOW, -1)
+    curses.init_pair(6, curses.COLOR_GREEN, -1)
+    curses.init_pair(7, curses.COLOR_CYAN, -1)
+    curses.init_pair(8, curses.COLOR_BLUE, -1)
+    curses.init_pair(9, curses.COLOR_MAGENTA, -1)
     return {
         "border": curses.color_pair(1),
-        "snake_head": curses.color_pair(2) | curses.A_BOLD,
-        "snake_body": curses.color_pair(3),
-        "fruit": curses.color_pair(4) | curses.A_BOLD,
-        "text": curses.color_pair(5),
+        "fruit": curses.color_pair(3) | curses.A_BOLD,
+        "text": curses.color_pair(2),
+        "rainbow": [
+            curses.color_pair(4),
+            curses.color_pair(5),
+            curses.color_pair(6),
+            curses.color_pair(7),
+            curses.color_pair(8),
+            curses.color_pair(9),
+        ],
     }
 
 
-def draw_game(stdscr, top, left, height, width, snake, fruit, score, speed, paused, colors):
+def draw_game(
+    stdscr, top, left, height, width, snake, fruit, score, speed, paused, colors, hue_offset
+):
     stdscr.erase()
     if colors:
         stdscr.attron(colors["border"])
@@ -78,7 +90,11 @@ def draw_game(stdscr, top, left, height, width, snake, fruit, score, speed, paus
     for i, (y, x) in enumerate(snake):
         char = "●" if i == 0 else "•"
         if colors:
-            color = colors["snake_head"] if i == 0 else colors["snake_body"]
+            rainbow = colors.get("rainbow", [])
+            if rainbow:
+                color = rainbow[(i + hue_offset) % len(rainbow)] | curses.A_BOLD
+            else:
+                color = curses.A_BOLD
             stdscr.addstr(top + y, left + x, char, color)
         else:
             stdscr.addstr(top + y, left + x, char)
@@ -146,6 +162,7 @@ def game_loop(stdscr):
         tick = time.monotonic()
         delay = 0.18
 
+        hue_offset = 0
         while True:
             key = stdscr.getch()
             if key in (ord("q"), ord("Q")):
@@ -174,7 +191,10 @@ def game_loop(stdscr):
                     speed,
                     True,
                     colors,
+                    hue_offset,
                 )
+                if colors.get("rainbow"):
+                    hue_offset = (hue_offset + 1) % len(colors["rainbow"])
                 time.sleep(0.05)
                 continue
 
@@ -223,7 +243,10 @@ def game_loop(stdscr):
                 speed,
                 False,
                 colors,
+                hue_offset,
             )
+            if colors.get("rainbow"):
+                hue_offset = (hue_offset + 1) % len(colors["rainbow"])
 
         wait_for_key(stdscr, f"Game over! Score: {score}. Press Q to quit or any key to restart.")
 
