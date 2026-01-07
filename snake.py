@@ -15,25 +15,41 @@ def place_fruit(snake, height, width):
             return pos
 
 
-def draw_border(stdscr, top, left, height, width):
+def draw_border(stdscr, top, left, height, width, colors, hue_offset):
     top_left = "┏"
     top_right = "┓"
     bottom_left = "┗"
     bottom_right = "┛"
     horizontal = "━"
     vertical = "┃"
-    stdscr.addstr(top, left, top_left)
-    stdscr.addstr(top, left + width - 1, top_right)
-    stdscr.addstr(top + height - 1, left, bottom_left)
-    stdscr.addstr(top + height - 1, left + width - 1, bottom_right)
-    for x in range(width):
-        if 0 < x < width - 1:
-            stdscr.addstr(top, left + x, horizontal)
-            stdscr.addstr(top + height - 1, left + x, horizontal)
-    for y in range(height):
-        if 0 < y < height - 1:
-            stdscr.addstr(top + y, left, vertical)
-            stdscr.addstr(top + y, left + width - 1, vertical)
+    rainbow = colors.get("rainbow") if colors else None
+    border_color = colors.get("border") if colors else None
+    perimeter = 2 * width + 2 * height - 4
+    step = 0
+
+    def add_border(y, x, ch):
+        nonlocal step
+        if rainbow:
+            color = rainbow[(step + hue_offset) % len(rainbow)]
+        elif border_color:
+            color = border_color
+        else:
+            color = 0
+        stdscr.addstr(y, x, ch, color)
+        step = (step + 1) % max(1, perimeter)
+
+    add_border(top, left, top_left)
+    for x in range(1, width - 1):
+        add_border(top, left + x, horizontal)
+    add_border(top, left + width - 1, top_right)
+    for y in range(1, height - 1):
+        add_border(top + y, left + width - 1, vertical)
+    add_border(top + height - 1, left + width - 1, bottom_right)
+    for x in range(width - 2, 0, -1):
+        add_border(top + height - 1, left + x, horizontal)
+    add_border(top + height - 1, left, bottom_left)
+    for y in range(height - 2, 0, -1):
+        add_border(top + y, left, vertical)
 
 
 def init_colors():
@@ -69,11 +85,7 @@ def draw_game(
     stdscr, top, left, height, width, snake, fruit, score, speed, paused, colors, hue_offset
 ):
     stdscr.erase()
-    if colors:
-        stdscr.attron(colors["border"])
-    draw_border(stdscr, top, left, height, width)
-    if colors:
-        stdscr.attroff(colors["border"])
+    draw_border(stdscr, top, left, height, width, colors, hue_offset)
     score_line = f"Score: {score}  Speed: {speed}x  (Arrow keys to move, P to pause, Q to quit)"
     if colors:
         stdscr.addstr(top - 1, left, score_line, colors["text"])
